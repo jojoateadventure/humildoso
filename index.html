@@ -22,12 +22,13 @@ select{ padding:8px; font-size:16px; }
   gap:2px;
 }
 .piece{
-  background-size:100% 100%;
   border-radius:4px;
-  cursor:pointer;
+  cursor:grab;
+  touch-action:none;
 }
-.piece.selected{
-  outline:3px solid #2c7a7b;
+.piece.dragging{
+  opacity:0.6;
+  cursor:grabbing;
 }
 #message{
   display:none;
@@ -42,7 +43,7 @@ select{ padding:8px; font-size:16px; }
 <body>
 
 <h2>Monte o quebra-cabeça 🎵</h2>
-<p>Toque em duas peças para trocar de lugar.</p>
+<p>Arraste as peças para montar a imagem.</p>
 
 <div id="controls">
   <label>Dificuldade: </label>
@@ -64,7 +65,7 @@ Aprender também pode ser divertido 🎶
 const puzzle = document.getElementById('puzzle');
 const levelSelect = document.getElementById('level');
 const message = document.getElementById('message');
-let firstPiece = null;
+let dragged = null;
 
 function createPuzzle(cols){
   puzzle.innerHTML = "";
@@ -94,23 +95,33 @@ function createPuzzle(cols){
   pieces.sort(()=>Math.random()-0.5);
 
   pieces.forEach(piece=>{
-    piece.addEventListener('click', ()=>selectPiece(piece));
+    piece.addEventListener('pointerdown', startDrag);
+    piece.addEventListener('pointerup', endDrag);
+    piece.addEventListener('pointerenter', overPiece);
     puzzle.appendChild(piece);
   });
 }
 
-function selectPiece(piece){
-  if(!firstPiece){
-    firstPiece = piece;
-    piece.classList.add('selected');
-  } else {
-    const temp = firstPiece.style.backgroundPosition;
-    firstPiece.style.backgroundPosition = piece.style.backgroundPosition;
-    piece.style.backgroundPosition = temp;
+function startDrag(e){
+  dragged = e.target;
+  dragged.classList.add('dragging');
+  dragged.setPointerCapture(e.pointerId);
+}
 
-    firstPiece.classList.remove('selected');
-    firstPiece = null;
+function endDrag(e){
+  if(dragged){
+    dragged.classList.remove('dragging');
+    dragged.releasePointerCapture(e.pointerId);
+    dragged = null;
     checkWin();
+  }
+}
+
+function overPiece(e){
+  if(dragged && dragged !== e.target){
+    const temp = dragged.style.backgroundPosition;
+    dragged.style.backgroundPosition = e.target.style.backgroundPosition;
+    e.target.style.backgroundPosition = temp;
   }
 }
 
