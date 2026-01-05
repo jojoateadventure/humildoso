@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -18,22 +17,20 @@ body{
 select{ padding:8px; font-size:16px; }
 
 #puzzle{
-  position:relative;
   margin:20px auto;
   display:grid;
-  gap:2px;
+  gap:4px;
 }
 .piece{
   border-radius:6px;
-  cursor:grab;
+  background-repeat:no-repeat;
   touch-action:none;
-  transition: transform 0.2s;
+  cursor:grab;
+  transition: transform 0.15s;
 }
 .piece.dragging{
-  position:absolute;
-  z-index:10;
+  transform: scale(1.08);
   opacity:0.85;
-  cursor:grabbing;
 }
 #message{
   display:none;
@@ -53,7 +50,7 @@ select{ padding:8px; font-size:16px; }
 <body>
 
 <h2>Monte o quebra-cabeça 🎵</h2>
-<p>Arraste as peças para montar a imagem.</p>
+<p>Arraste uma peça sobre outra para trocar.</p>
 
 <div id="controls">
   <label>Dificuldade: </label>
@@ -72,13 +69,12 @@ Aprender também pode ser divertido 🎶
 </div>
 
 <script>
-const puzzle = document.getElementById('puzzle');
-const levelSelect = document.getElementById('level');
-const message = document.getElementById('message');
+const puzzle = document.getElementById("puzzle");
+const level = document.getElementById("level");
+const message = document.getElementById("message");
 
-let dragged = null;
-let startX = 0, startY = 0;
-let offsetX = 0, offsetY = 0;
+let pieces = [];
+let draggedIndex = null;
 
 function createPuzzle(total){
   puzzle.innerHTML = "";
@@ -87,99 +83,56 @@ function createPuzzle(total){
   const cols = Math.round(Math.sqrt(total));
   const rows = Math.ceil(total / cols);
   const size = Math.min(window.innerWidth - 40, 360);
+  const pieceSize = size / cols;
 
   puzzle.style.width = size + "px";
   puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-  const pieceSize = size / cols;
-  let pieces = [];
+  pieces = [];
 
   for(let i=0;i<total;i++){
-    const x = i % cols;
-    const y = Math.floor(i / cols);
+    pieces.push(i);
+  }
 
-    const div = document.createElement('div');
-    div.className = 'piece';
+  pieces.sort(()=>Math.random()-0.5);
+
+  pieces.forEach((imgIndex, index)=>{
+    const x = imgIndex % cols;
+    const y = Math.floor(imgIndex / cols);
+
+    const div = document.createElement("div");
+    div.className = "piece";
     div.style.width = pieceSize + "px";
     div.style.height = pieceSize + "px";
     div.style.backgroundImage = "url('Hmildoso.png')";
     div.style.backgroundSize = `${size}px ${size}px`;
     div.style.backgroundPosition = `-${x*pieceSize}px -${y*pieceSize}px`;
-    div.dataset.correct = div.style.backgroundPosition;
 
-    div.addEventListener('pointerdown', startDrag);
-    pieces.push(div);
-  }
-
-  pieces.sort(()=>Math.random()-0.5).forEach(p=>puzzle.appendChild(p));
-}
-
-function startDrag(e){
-  dragged = e.target;
-  const rect = dragged.getBoundingClientRect();
-  startX = rect.left;
-  startY = rect.top;
-  offsetX = e.clientX - rect.left;
-  offsetY = e.clientY - rect.top;
-
-  dragged.classList.add('dragging');
-  dragged.setPointerCapture(e.pointerId);
-
-  document.addEventListener('pointermove', moveDrag);
-  document.addEventListener('pointerup', endDrag);
-}
-
-function moveDrag(e){
-  if(!dragged) return;
-  dragged.style.left = (e.clientX - offsetX) + "px";
-  dragged.style.top = (e.clientY - offsetY) + "px";
-}
-
-function endDrag(e){
-  let snapped = false;
-  const threshold = 40;
-
-  document.querySelectorAll('.piece').forEach(p=>{
-    if(p !== dragged){
-      const r1 = dragged.getBoundingClientRect();
-      const r2 = p.getBoundingClientRect();
-      const dx = r1.left - r2.left;
-      const dy = r1.top - r2.top;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-
-      if(dist < threshold){
-        const temp = dragged.style.backgroundPosition;
-        dragged.style.backgroundPosition = p.style.backgroundPosition;
-        p.style.backgroundPosition = temp;
-        snapped = true;
-      }
-    }
+    div.addEventListener("pointerdown", ()=>draggedIndex = index);
+    div.addEventListener("pointerup", ()=>drop(index));
+    puzzle.appendChild(div);
   });
+}
 
-  dragged.classList.remove('dragging');
-  dragged.style.left = "";
-  dragged.style.top = "";
-  dragged.releasePointerCapture(e.pointerId);
+function drop(targetIndex){
+  if(draggedIndex === null || draggedIndex === targetIndex) return;
 
-  dragged = null;
-  document.removeEventListener('pointermove', moveDrag);
-  document.removeEventListener('pointerup', endDrag);
+  [pieces[draggedIndex], pieces[targetIndex]] =
+  [pieces[targetIndex], pieces[draggedIndex]];
 
-  if(snapped) checkWin();
+  createPuzzle(pieces.length);
+  checkWin();
+  draggedIndex = null;
 }
 
 function checkWin(){
-  const pieces = document.querySelectorAll('.piece');
-  let ok = true;
-  pieces.forEach(p=>{
-    if(p.style.backgroundPosition !== p.dataset.correct){
-      ok = false;
-    }
-  });
-  if(ok) message.style.display = "block";
+  for(let i=0;i<pieces.length;i++){
+    if(pieces[i] !== i) return;
+  }
+  message.style.display = "block";
 }
 
-levelSelect.addEventListener("change", ()=>createPuzzle(+levelSelect.value));
+level.addEventListener("change", ()=>createPuzzle(+level.value));
 createPuzzle(48);
 </script>
 
