@@ -26,11 +26,10 @@ select{ padding:8px; font-size:16px; }
   background-repeat:no-repeat;
   touch-action:none;
   cursor:grab;
-  transition: transform 0.15s;
 }
 .piece.dragging{
-  transform: scale(1.08);
-  opacity:0.85;
+  opacity:0.8;
+  transform:scale(1.05);
 }
 #message{
   display:none;
@@ -81,20 +80,17 @@ function createPuzzle(total){
   message.style.display = "none";
 
   const cols = Math.round(Math.sqrt(total));
-  const rows = Math.ceil(total / cols);
   const size = Math.min(window.innerWidth - 40, 360);
   const pieceSize = size / cols;
 
   puzzle.style.width = size + "px";
   puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-  pieces = [];
-
-  for(let i=0;i<total;i++){
-    pieces.push(i);
+  if (pieces.length !== total) {
+    pieces = [];
+    for(let i=0;i<total;i++) pieces.push(i);
+    pieces.sort(()=>Math.random()-0.5);
   }
-
-  pieces.sort(()=>Math.random()-0.5);
 
   pieces.forEach((imgIndex, index)=>{
     const x = imgIndex % cols;
@@ -115,14 +111,17 @@ function createPuzzle(total){
 }
 
 function drop(targetIndex){
-  if(draggedIndex === null || draggedIndex === targetIndex) return;
+  if(draggedIndex === null || draggedIndex === targetIndex) {
+    draggedIndex = null;
+    return;
+  }
 
   [pieces[draggedIndex], pieces[targetIndex]] =
   [pieces[targetIndex], pieces[draggedIndex]];
 
+  draggedIndex = null;
   createPuzzle(pieces.length);
   checkWin();
-  draggedIndex = null;
 }
 
 function checkWin(){
@@ -132,7 +131,11 @@ function checkWin(){
   message.style.display = "block";
 }
 
-level.addEventListener("change", ()=>createPuzzle(+level.value));
+level.addEventListener("change", ()=>{
+  pieces = [];
+  createPuzzle(+level.value);
+});
+
 createPuzzle(48);
 </script>
 
