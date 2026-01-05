@@ -27,9 +27,8 @@ select{ padding:8px; font-size:16px; }
   touch-action:none;
   cursor:grab;
 }
-.piece.dragging{
-  opacity:0.8;
-  transform:scale(1.05);
+.piece.active{
+  outline:3px solid #38b2ac;
 }
 #message{
   display:none;
@@ -49,7 +48,7 @@ select{ padding:8px; font-size:16px; }
 <body>
 
 <h2>Monte o quebra-cabeça 🎵</h2>
-<p>Arraste uma peça sobre outra para trocar.</p>
+<p>Toque em uma peça e depois em outra para trocar.</p>
 
 <div id="controls">
   <label>Dificuldade: </label>
@@ -73,71 +72,70 @@ const level = document.getElementById("level");
 const message = document.getElementById("message");
 
 let pieces = [];
-let draggedIndex = null;
+let selectedIndex = null;
+let cols, size, pieceSize;
 
-function createPuzzle(total){
+function setup(total){
   puzzle.innerHTML = "";
   message.style.display = "none";
 
-  const cols = Math.round(Math.sqrt(total));
-  const size = Math.min(window.innerWidth - 40, 360);
-  const pieceSize = size / cols;
+  cols = Math.round(Math.sqrt(total));
+  size = Math.min(window.innerWidth - 40, 360);
+  pieceSize = size / cols;
 
   puzzle.style.width = size + "px";
   puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-  if (pieces.length !== total) {
-    pieces = [];
-    for(let i=0;i<total;i++) pieces.push(i);
-    pieces.sort(()=>Math.random()-0.5);
-  }
+  pieces = Array.from({length: total}, (_,i)=>i).sort(()=>Math.random()-0.5);
 
-  pieces.forEach((imgIndex, index)=>{
-    const x = imgIndex % cols;
-    const y = Math.floor(imgIndex / cols);
-
+  for(let i=0;i<total;i++){
     const div = document.createElement("div");
     div.className = "piece";
     div.style.width = pieceSize + "px";
     div.style.height = pieceSize + "px";
+
+    div.addEventListener("click", ()=>handleSelect(i));
+    puzzle.appendChild(div);
+  }
+
+  render();
+}
+
+function render(){
+  document.querySelectorAll(".piece").forEach((div, index)=>{
+    const imgIndex = pieces[index];
+    const x = imgIndex % cols;
+    const y = Math.floor(imgIndex / cols);
+
     div.style.backgroundImage = "url('Hmildoso.png')";
     div.style.backgroundSize = `${size}px ${size}px`;
     div.style.backgroundPosition = `-${x*pieceSize}px -${y*pieceSize}px`;
-
-    div.addEventListener("pointerdown", ()=>draggedIndex = index);
-    div.addEventListener("pointerup", ()=>drop(index));
-    puzzle.appendChild(div);
+    div.classList.toggle("active", index === selectedIndex);
   });
 }
 
-function drop(targetIndex){
-  if(draggedIndex === null || draggedIndex === targetIndex) {
-    draggedIndex = null;
-    return;
+function handleSelect(index){
+  if(selectedIndex === null){
+    selectedIndex = index;
+  }else{
+    [pieces[selectedIndex], pieces[index]] =
+    [pieces[index], pieces[selectedIndex]];
+    selectedIndex = null;
+    render();
+    checkWin();
   }
-
-  [pieces[draggedIndex], pieces[targetIndex]] =
-  [pieces[targetIndex], pieces[draggedIndex]];
-
-  draggedIndex = null;
-  createPuzzle(pieces.length);
-  checkWin();
 }
 
 function checkWin(){
-  for(let i=0;i<pieces.length;i++){
-    if(pieces[i] !== i) return;
+  if(pieces.every((v,i)=>v===i)){
+    message.style.display = "block";
   }
-  message.style.display = "block";
 }
 
-level.addEventListener("change", ()=>{
-  pieces = [];
-  createPuzzle(+level.value);
-});
-
-createPuzzle(48);
+level.addEventListener("change", ()=>setup(+level.value));
+setup(48);
 </script>
 
 </body>
 </html>
+
