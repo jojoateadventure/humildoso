@@ -20,12 +20,13 @@ select{ padding:8px; font-size:16px; }
   margin:20px auto;
   display:grid;
   gap:4px;
+  touch-action:manipulation;
 }
 .piece{
   border-radius:6px;
   background-repeat:no-repeat;
+  cursor:pointer;
   touch-action:none;
-  cursor:grab;
 }
 .piece.active{
   outline:3px solid #38b2ac;
@@ -86,7 +87,8 @@ function setup(total){
   puzzle.style.width = size + "px";
   puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-  pieces = Array.from({length: total}, (_,i)=>i).sort(()=>Math.random()-0.5);
+  pieces = Array.from({length: total}, (_,i)=>i)
+    .sort(()=>Math.random()-0.5);
 
   for(let i=0;i<total;i++){
     const div = document.createElement("div");
@@ -94,7 +96,11 @@ function setup(total){
     div.style.width = pieceSize + "px";
     div.style.height = pieceSize + "px";
 
-    div.addEventListener("click", ()=>handleSelect(i));
+    div.addEventListener("pointerdown", (e)=>{
+      e.preventDefault();
+      handleSelect(i);
+    });
+
     puzzle.appendChild(div);
   }
 
@@ -138,4 +144,3 @@ setup(48);
 
 </body>
 </html>
-
