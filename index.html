@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quebra-cabeça Educacional – Humildoso</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  text-align:center;
+  margin:0;
+  padding:10px;
+}
+h2 { margin-top:10px; }
+#controls {
+  margin: 10px auto;
+}
+select {
+  padding:8px;
+  font-size:16px;
+}
+#puzzle {
+  margin:20px auto;
+  display:grid;
+  gap:2px;
+  touch-action: none;
+}
+.piece {
+  background-size:100% 100%;
+  cursor:grab;
+}
+#message {
+  display:none;
+  font-size:20px;
+  margin-top:20px;
+  color:#2c7a7b;
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<h2>Monte o quebra-cabeça 🎵</h2>
+<p>Escolha a dificuldade e complete a imagem.</p>
+
+<div id="controls">
+  <label>Dificuldade: </label>
+  <select id="level">
+    <option value="3">Fácil (12 peças)</option>
+    <option value="4">Médio (24 peças)</option>
+    <option value="6" selected>Difícil (48 peças)</option>
+  </select>
+</div>
+
+<div id="puzzle"></div>
+
+<div id="message">
+✨ Esse é o <strong>HUMILDOSO!</strong><br>
+Aprender também pode ser divertido 🎶
+</div>
+
+<script>
+const puzzle = document.getElementById('puzzle');
+const levelSelect = document.getElementById('level');
+const message = document.getElementById('message');
+let dragged;
+
+function createPuzzle(cols){
+  puzzle.innerHTML = "";
+  message.style.display = "none";
+  const rows = Math.round(48 / cols);
+  const size = Math.min(window.innerWidth - 40, 360);
+  puzzle.style.width = size + "px";
+  puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  let pieces = [];
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const div = document.createElement('div');
+      div.className = 'piece';
+      div.style.width = size/cols + "px";
+      div.style.height = size/cols + "px";
+      div.style.backgroundImage = "url('Hmildoso.png')";
+      div.style.backgroundSize = `${size}px ${size}px`;
+      div.style.backgroundPosition = `-${x*(size/cols)}px -${y*(size/cols)}px`;
+      div.draggable = true;
+      pieces.push(div);
+    }
+  }
+
+  pieces.sort(()=>Math.random()-0.5).forEach(p=>puzzle.appendChild(p));
+
+  document.querySelectorAll('.piece').forEach(piece=>{
+    piece.addEventListener("dragstart", e => dragged = piece);
+    piece.addEventListener("dragover", e => e.preventDefault());
+    piece.addEventListener("drop", e => {
+      const temp = dragged.style.backgroundPosition;
+      dragged.style.backgroundPosition = piece.style.backgroundPosition;
+      piece.style.backgroundPosition = temp;
+      checkWin();
+    });
+  });
+}
+
+function checkWin(){
+  const pieces = document.querySelectorAll('.piece');
+  let correct = true;
+  pieces.forEach(p=>{
+    if(p.style.backgroundPosition !== p.dataset.pos){
+      correct = false;
+    }
+  });
+  if(correct){
+    message.style.display = "block";
+  }
+}
+
+levelSelect.addEventListener("change", ()=>createPuzzle(levelSelect.value));
+
+createPuzzle(6);
+</script>
+
+</body>
+</html>
