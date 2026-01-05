@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -17,25 +18,34 @@ body{
 select{ padding:8px; font-size:16px; }
 
 #puzzle{
+  position:relative;
   margin:20px auto;
   display:grid;
   gap:2px;
 }
 .piece{
-  border-radius:4px;
+  border-radius:6px;
   cursor:grab;
   touch-action:none;
+  transition: transform 0.2s;
 }
 .piece.dragging{
-  opacity:0.6;
+  position:absolute;
+  z-index:10;
+  opacity:0.85;
   cursor:grabbing;
 }
 #message{
   display:none;
-  font-size:20px;
+  font-size:22px;
   margin-top:20px;
   color:#2c7a7b;
   font-weight:bold;
+  animation: pop 0.6s ease forwards;
+}
+@keyframes pop{
+  from{ transform:scale(0.8); opacity:0; }
+  to{ transform:scale(1); opacity:1; }
 }
 </style>
 </head>
@@ -48,16 +58,16 @@ select{ padding:8px; font-size:16px; }
 <div id="controls">
   <label>Dificuldade: </label>
   <select id="level">
-    <option value="3">Fácil (12 peças)</option>
-    <option value="4">Médio (24 peças)</option>
-    <option value="6" selected>Difícil (48 peças)</option>
+    <option value="12">Fácil (12 peças)</option>
+    <option value="24">Médio (24 peças)</option>
+    <option value="48" selected>Difícil (48 peças)</option>
   </select>
 </div>
 
 <div id="puzzle"></div>
 
 <div id="message">
-✨ Esse é o <strong>HUMILDOSO!</strong><br>
+🎉 <strong>Esse é o HUMILDOSO!</strong><br>
 Aprender também pode ser divertido 🎶
 </div>
 
@@ -65,64 +75,97 @@ Aprender também pode ser divertido 🎶
 const puzzle = document.getElementById('puzzle');
 const levelSelect = document.getElementById('level');
 const message = document.getElementById('message');
-let dragged = null;
 
-function createPuzzle(cols){
+let dragged = null;
+let startX = 0, startY = 0;
+let offsetX = 0, offsetY = 0;
+
+function createPuzzle(total){
   puzzle.innerHTML = "";
   message.style.display = "none";
 
-  const rows = Math.round(48 / cols);
+  const cols = Math.round(Math.sqrt(total));
+  const rows = Math.ceil(total / cols);
   const size = Math.min(window.innerWidth - 40, 360);
+
   puzzle.style.width = size + "px";
   puzzle.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
+  const pieceSize = size / cols;
   let pieces = [];
 
-  for(let y=0;y<rows;y++){
-    for(let x=0;x<cols;x++){
-      const div = document.createElement('div');
-      div.className = 'piece';
-      div.style.width = size/cols + "px";
-      div.style.height = size/cols + "px";
-      div.style.backgroundImage = "url('Hmildoso.png')";
-      div.style.backgroundSize = `${size}px ${size}px`;
-      div.style.backgroundPosition = `-${x*(size/cols)}px -${y*(size/cols)}px`;
-      div.dataset.correct = div.style.backgroundPosition;
-      pieces.push(div);
-    }
+  for(let i=0;i<total;i++){
+    const x = i % cols;
+    const y = Math.floor(i / cols);
+
+    const div = document.createElement('div');
+    div.className = 'piece';
+    div.style.width = pieceSize + "px";
+    div.style.height = pieceSize + "px";
+    div.style.backgroundImage = "url('Hmildoso.png')";
+    div.style.backgroundSize = `${size}px ${size}px`;
+    div.style.backgroundPosition = `-${x*pieceSize}px -${y*pieceSize}px`;
+    div.dataset.correct = div.style.backgroundPosition;
+
+    div.addEventListener('pointerdown', startDrag);
+    pieces.push(div);
   }
 
-  pieces.sort(()=>Math.random()-0.5);
-
-  pieces.forEach(piece=>{
-    piece.addEventListener('pointerdown', startDrag);
-    piece.addEventListener('pointerup', endDrag);
-    piece.addEventListener('pointerenter', overPiece);
-    puzzle.appendChild(piece);
-  });
+  pieces.sort(()=>Math.random()-0.5).forEach(p=>puzzle.appendChild(p));
 }
 
 function startDrag(e){
   dragged = e.target;
+  const rect = dragged.getBoundingClientRect();
+  startX = rect.left;
+  startY = rect.top;
+  offsetX = e.clientX - rect.left;
+  offsetY = e.clientY - rect.top;
+
   dragged.classList.add('dragging');
   dragged.setPointerCapture(e.pointerId);
+
+  document.addEventListener('pointermove', moveDrag);
+  document.addEventListener('pointerup', endDrag);
+}
+
+function moveDrag(e){
+  if(!dragged) return;
+  dragged.style.left = (e.clientX - offsetX) + "px";
+  dragged.style.top = (e.clientY - offsetY) + "px";
 }
 
 function endDrag(e){
-  if(dragged){
-    dragged.classList.remove('dragging');
-    dragged.releasePointerCapture(e.pointerId);
-    dragged = null;
-    checkWin();
-  }
-}
+  let snapped = false;
+  const threshold = 40;
 
-function overPiece(e){
-  if(dragged && dragged !== e.target){
-    const temp = dragged.style.backgroundPosition;
-    dragged.style.backgroundPosition = e.target.style.backgroundPosition;
-    e.target.style.backgroundPosition = temp;
-  }
+  document.querySelectorAll('.piece').forEach(p=>{
+    if(p !== dragged){
+      const r1 = dragged.getBoundingClientRect();
+      const r2 = p.getBoundingClientRect();
+      const dx = r1.left - r2.left;
+      const dy = r1.top - r2.top;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+
+      if(dist < threshold){
+        const temp = dragged.style.backgroundPosition;
+        dragged.style.backgroundPosition = p.style.backgroundPosition;
+        p.style.backgroundPosition = temp;
+        snapped = true;
+      }
+    }
+  });
+
+  dragged.classList.remove('dragging');
+  dragged.style.left = "";
+  dragged.style.top = "";
+  dragged.releasePointerCapture(e.pointerId);
+
+  dragged = null;
+  document.removeEventListener('pointermove', moveDrag);
+  document.removeEventListener('pointerup', endDrag);
+
+  if(snapped) checkWin();
 }
 
 function checkWin(){
@@ -136,8 +179,8 @@ function checkWin(){
   if(ok) message.style.display = "block";
 }
 
-levelSelect.addEventListener("change", ()=>createPuzzle(levelSelect.value));
-createPuzzle(6);
+levelSelect.addEventListener("change", ()=>createPuzzle(+levelSelect.value));
+createPuzzle(48);
 </script>
 
 </body>
