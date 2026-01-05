@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Quebra-cabeça Educacional – Humildoso</title>
 
 <style>
@@ -20,7 +20,7 @@ select{ padding:8px; font-size:16px; }
   margin:20px auto;
   display:grid;
   gap:4px;
-  touch-action:manipulation;
+  touch-action:none;
 }
 .piece{
   border-radius:6px;
@@ -96,7 +96,14 @@ function setup(total){
     div.style.width = pieceSize + "px";
     div.style.height = pieceSize + "px";
 
-    div.addEventListener("pointerdown", (e)=>{
+    // TOUCH (celular / tablet)
+    div.addEventListener("touchstart", (e)=>{
+      e.preventDefault();
+      handleSelect(i);
+    }, {passive:false});
+
+    // MOUSE (computador)
+    div.addEventListener("mousedown", (e)=>{
       e.preventDefault();
       handleSelect(i);
     });
